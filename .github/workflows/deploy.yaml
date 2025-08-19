@@ -43,7 +43,7 @@ jobs:
 
             # Clone repo if not exists, else pull latest
             if [ ! -d repo ]; then
-              git clone https://github.com/<your-username>/<repo>.git repo
+              git clone https://github.com/Namra2511/Flask-app.git repo
             else
               cd repo
               git reset --hard
