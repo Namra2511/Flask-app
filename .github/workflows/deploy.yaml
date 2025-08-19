@@ -3,7 +3,7 @@ name: Build, Push, and Deploy to EC2 kind cluster
 on:
   push:
     branches:
-      - main  # Trigger on push to main
+      - main
 
 jobs:
   build-and-deploy:
@@ -29,11 +29,15 @@ jobs:
           docker build -t $IMAGE_NAME:$IMAGE_TAG .
           docker push $IMAGE_NAME:$IMAGE_TAG
 
-      # 4️⃣ Write SSH key to file
-      - name: Setup SSH key
-        run: |
-          echo "${{ secrets.EC2_SSH_KEY }}" > key.pem
-          chmod 600 key.pem
+      # 4️⃣ Test SSH connectivity (debug step)
+      - name: Test SSH connection
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            echo 'SSH connection successful'
 
       # 5️⃣ Copy Kubernetes manifests to EC2
       - name: Copy manifests to EC2
@@ -41,7 +45,7 @@ jobs:
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
-          key_path: key.pem
+          key: ${{ secrets.EC2_SSH_KEY }}
           source: "k8s/*"
           target: "/home/ubuntu/app/k8s/"
 
@@ -51,11 +55,8 @@ jobs:
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
-          key_path: key.pem
+          key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            # Apply Kubernetes manifests
             kubectl apply -f /home/ubuntu/app/k8s/deployment.yaml
             kubectl apply -f /home/ubuntu/app/k8s/service.yaml
-
-            # Optional: check rollout status
             kubectl rollout status deployment/flask-app
