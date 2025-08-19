@@ -28,34 +28,27 @@ jobs:
           docker build -t $IMAGE_NAME:latest .
           docker push $IMAGE_NAME:latest
 
-      # 4️⃣ Deploy to EC2 kind cluster by cloning repo fresh each time
+      # 4️⃣ Deploy to EC2 kind cluster
       - name: Deploy to EC2 kind cluster
-  uses: appleboy/ssh-action@v0.1.8
-  with:
-    host: ${{ secrets.EC2_HOST }}
-    username: ubuntu
-    key: ${{ secrets.EC2_SSH_KEY }}
-    script: |
-      mkdir -p ~/app
-      cd ~/app
-
-      # Remove existing repo if exists
-      rm -rf repo
-
-      # Clone fresh repo
-      git clone https://github.com/Namra2511/Flask-app.git repo
-      cd repo
-
-      # Keep only k8s folder
-      find . -maxdepth 1 ! -name 'k8s' ! -name '.' -exec rm -rf {} +
-
-      # Apply Kubernetes manifests
-      kubectl apply -f k8s/deployment.yaml
-      kubectl apply -f k8s/service.yaml
-
-      # Force restart the deployment to pick up new image
-      kubectl rollout restart deployment/flask-app
-
-      # Wait for all pods to be ready
-      kubectl rollout status deployment/flask-app
-
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            mkdir -p ~/app
+            cd ~/app
+            # Remove existing repo if exists
+            rm -rf repo
+            # Clone fresh repo
+            git clone https://github.com/Namra2511/Flask-app.git repo
+            cd repo
+            # Keep only k8s folder
+            find . -maxdepth 1 ! -name 'k8s' ! -name '.' -exec rm -rf {} +
+            # Apply Kubernetes manifests
+            kubectl apply -f k8s/deployment.yaml
+            kubectl apply -f k8s/service.yaml
+            # Force restart the deployment to pick up new image
+            kubectl rollout restart deployment/flask-app
+            # Wait for all pods to be ready
+            kubectl rollout status deployment/flask-app
