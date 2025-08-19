@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout repository
+      # 1️⃣ Checkout code
       - name: Checkout code
         uses: actions/checkout@v3
 
@@ -21,13 +21,12 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 3️⃣ Build and push Docker image
+      # 3️⃣ Build and push Docker image (latest)
       - name: Build and push Docker image
         run: |
           IMAGE_NAME=${{ secrets.DOCKERHUB_USERNAME }}/flask
-          IMAGE_TAG=latest
-          docker build -t $IMAGE_NAME:$IMAGE_TAG .
-          docker push $IMAGE_NAME:$IMAGE_TAG
+          docker build -t $IMAGE_NAME:latest .
+          docker push $IMAGE_NAME:latest
 
       # 4️⃣ Deploy to EC2 kind cluster by cloning repo
       - name: Deploy to EC2 kind cluster
@@ -37,7 +36,6 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            # Create app folder if not exists
             mkdir -p ~/app
             cd ~/app
 
@@ -59,5 +57,8 @@ jobs:
             kubectl apply -f k8s/deployment.yaml
             kubectl apply -f k8s/service.yaml
 
-            # Wait for rollout
+            # Force restart the deployment to pick up new image
+            kubectl rollout restart deployment/flask-app
+
+            # Wait for all pods to be ready
             kubectl rollout status deployment/flask-app
