@@ -17,7 +17,7 @@ spec:
       containers:
         - name: flask-app
           image: patelnamra/flask:latest
-          imagePullPolicy: Always   # <--- Always fetch latest image from Docker Hub
+          imagePullPolicy: Always  
           ports:
             - containerPort: 5000
           env:
