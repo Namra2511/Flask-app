@@ -29,27 +29,7 @@ jobs:
           docker build -t $IMAGE_NAME:$IMAGE_TAG .
           docker push $IMAGE_NAME:$IMAGE_TAG
 
-      # 4️⃣ Test SSH connectivity (debug step)
-      - name: Test SSH connection
-        uses: appleboy/ssh-action@v0.1.8
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            echo 'SSH connection successful'
-
-      # 5️⃣ Copy Kubernetes manifests to EC2
-      - name: Copy manifests to EC2
-        uses: appleboy/scp-action@v0.1.1
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
-          source: "k8s/*"
-          target: "/home/ubuntu/app/k8s/"
-
-      # 6️⃣ Deploy to kind cluster on EC2
+      # 4️⃣ Deploy to EC2 kind cluster by cloning repo
       - name: Deploy to EC2 kind cluster
         uses: appleboy/ssh-action@v0.1.8
         with:
@@ -57,6 +37,27 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            kubectl apply -f /home/ubuntu/app/k8s/deployment.yaml
-            kubectl apply -f /home/ubuntu/app/k8s/service.yaml
+            # Create app folder if not exists
+            mkdir -p ~/app
+            cd ~/app
+
+            # Clone repo if not exists, else pull latest
+            if [ ! -d repo ]; then
+              git clone https://github.com/<your-username>/<repo>.git repo
+            else
+              cd repo
+              git reset --hard
+              git pull
+            fi
+
+            cd repo
+
+            # Keep only k8s folder
+            find . -maxdepth 1 ! -name 'k8s' ! -name '.' -exec rm -rf {} +
+
+            # Apply Kubernetes manifests
+            kubectl apply -f k8s/deployment.yaml
+            kubectl apply -f k8s/service.yaml
+
+            # Wait for rollout
             kubectl rollout status deployment/flask-app
