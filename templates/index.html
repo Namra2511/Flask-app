@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Image Gallery</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to right, #6a11cb, #2575fc);
+            margin: 0;
+            padding: 40px;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .upload-card {
+            background: #ffffff;
+            color: #333;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            width: 400px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 50px;
+        }
+
+        .upload-card input[type="text"], 
+        .upload-card input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-size: 1em;
+        }
+
+        .upload-card button {
+            padding: 12px;
+            background-color: #2575fc;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            width: 100%;
+            transition: 0.3s;
+        }
+
+        .upload-card button:hover {
+            background-color: #6a11cb;
+        }
+
+        .upload-card button:disabled {
+            background-color: #999;
+            cursor: not-allowed;
+        }
+
+        #gallery {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            width: 100%;
+            max-width: 1000px;
+            justify-content: center;
+        }
+
+        .image-card {
+            background: #fff;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.25);
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+            color: #333;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 220px;
+            min-height: 270px;
+        }
+
+        .image-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.35);
+        }
+
+        .image-card img {
+            width: 200px;
+            height: 200px;
+            object-fit: contain;
+            background: #f0f0f0;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .image-card .caption {
+            font-weight: bold;
+            color: #333;
+            word-break: break-word;
+        }
+
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
+
+        #overlay span {
+            background: #fff;
+            color: #333;
+            padding: 25px 50px;
+            border-radius: 15px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <h1> Image Gallery</h1>
+
+    <div class="upload-card">
+        <form id="uploadForm" enctype="multipart/form-data">
+            <input type="text" name="file_name" placeholder="Enter image name" required>
+            <input type="file" name="file" required>
+            <button type="submit" id="uploadBtn">Upload</button>
+        </form>
+    </div>
+
+    <div id="gallery">
+        {% if image_urls %}
+            {% for url in image_urls %}
+                <div class="image-card">
+                    <img src="{{ url }}" alt="Image">
+                    <div class="caption">{{ url.split('/')[-1] }}</div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>No images uploaded yet.</p>
+        {% endif %}
+    </div>
+
+    <div id="overlay"><span>Uploading...</span></div>
+
+    <script>
+        const form = document.getElementById('uploadForm');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const galleryDiv = document.getElementById('gallery');
+        const overlay = document.getElementById('overlay');
+
+        function renderGallery(html) {
+            galleryDiv.innerHTML = html;
+        }
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(form);
+            overlay.style.display = 'flex';
+            uploadBtn.disabled = true;
+
+            try {
+                const response = await fetch('/', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    form.reset();
+                    // Automatically reload page after successful upload to fix image sizes
+                    window.location.reload();
+                } else {
+                    alert('Upload failed!');
+                }
+
+            } catch (err) {
+                console.error(err);
+                alert('Error uploading file!');
+            } finally {
+                overlay.style.display = 'none';
+                uploadBtn.disabled = false;
+            }
+        });
+    </script>
+
+</body>
+</html>
