@@ -1,26 +1,55 @@
-name: Build and Push Docker Image
+name: Build, Push, and Deploy to EC2 kind cluster
 
 on:
   push:
     branches:
-      - main   # runs only when pushing to main branch
+      - main  # Trigger on push to main
 
 jobs:
-  docker:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout repository
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # 2️⃣ Log in to Docker Hub
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # 3️⃣ Build and push Docker image
       - name: Build and push Docker image
         run: |
           IMAGE_NAME=${{ secrets.DOCKERHUB_USERNAME }}/flask
-          docker build -t $IMAGE_NAME:latest .
-          docker push $IMAGE_NAME:latest
+          IMAGE_TAG=latest
+          docker build -t $IMAGE_NAME:$IMAGE_TAG .
+          docker push $IMAGE_NAME:$IMAGE_TAG
+
+      # 4️⃣ Copy Kubernetes manifests to EC2
+      - name: Copy manifests to EC2
+        uses: appleboy/scp-action@v0.1.1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "k8s/*"
+          target: "/home/ubuntu/app/k8s/"
+
+      # 5️⃣ Deploy to kind cluster on EC2
+      - name: Deploy to EC2 kind cluster
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # Apply Kubernetes manifests
+            kubectl apply -f /home/ubuntu/app/k8s/deployment.yaml
+            kubectl apply -f /home/ubuntu/app/k8s/service.yaml
+
+            # Optional: check rollout status
+            kubectl rollout status deployment/flask-app

@@ -30,7 +30,7 @@ def index():
             file_name = secure_filename(file_name) + os.path.splitext(file.filename)[1]
 
             # Upload to S3 (make public)
-            s3.upload_fileobj(file, S3_BUCKET, file_name, ExtraArgs={"ACL": "public-read"})
+            s3.upload_fileobj(file, S3_BUCKET, file_name)
 
         return redirect(url_for('index'))
 
