@@ -29,7 +29,7 @@ def index():
             # Create safe file name (user input + keep original extension)
             file_name = secure_filename(file_name) + os.path.splitext(file.filename)[1]
 
-            # Upload to S3 (make public)
+            # Upload to S3
             s3.upload_fileobj(file, S3_BUCKET, file_name)
 
         return redirect(url_for('index'))
@@ -50,10 +50,19 @@ def gallery():
         f"https://{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com/{obj['Key']}"
         for obj in objects
     ]
-
     html = "".join([f'<img src="{url}" alt="Image">' for url in image_urls])
     return html
 
+# 🗑 Delete endpoint
+@app.route('/delete', methods=['POST'])
+def delete_file():
+    file_name = request.form.get('file_name')
+    if file_name:
+        try:
+            s3.delete_object(Bucket=S3_BUCKET, Key=file_name)
+        except Exception as e:
+            return f"Error deleting {file_name}: {str(e)}", 500
+    return redirect(url_for('index'))
+
 if __name__ == '__main__':
-    # Only for local dev. In Docker, Gunicorn runs it.
     app.run(debug=True, host="0.0.0.0", port=5000)

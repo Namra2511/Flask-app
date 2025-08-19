@@ -61,11 +61,6 @@
             background-color: #6a11cb;
         }
 
-        .upload-card button:disabled {
-            background-color: #999;
-            cursor: not-allowed;
-        }
-
         #gallery {
             display: flex;
             flex-wrap: wrap;
@@ -88,7 +83,7 @@
             flex-direction: column;
             align-items: center;
             width: 220px;
-            min-height: 270px;
+            min-height: 320px;
         }
 
         .image-card:hover {
@@ -110,6 +105,22 @@
             font-weight: bold;
             color: #333;
             word-break: break-word;
+            margin-bottom: 10px;
+        }
+
+        .image-card form button {
+            background-color: #ff4d4f;
+            padding: 8px;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            transition: 0.3s;
+        }
+
+        .image-card form button:hover {
+            background-color: #d9363e;
         }
 
         #overlay {
@@ -137,71 +148,70 @@
 </head>
 <body>
 
-    <h1>Namra  Image Gallery</h1>
+<h1>Namra Image Gallery</h1>
 
-    <div class="upload-card">
-        <form id="uploadForm" enctype="multipart/form-data">
-            <input type="text" name="file_name" placeholder="Enter image name" required>
-            <input type="file" name="file" required>
-            <button type="submit" id="uploadBtn">Upload</button>
-        </form>
-    </div>
+<div class="upload-card">
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="text" name="file_name" placeholder="Enter image name" required>
+        <input type="file" name="file" required>
+        <button type="submit" id="uploadBtn">Upload</button>
+    </form>
+</div>
 
-    <div id="gallery">
-        {% if image_urls %}
-            {% for url in image_urls %}
-                <div class="image-card">
-                    <img src="{{ url }}" alt="Image">
-                    <div class="caption">{{ url.split('/')[-1] }}</div>
-                </div>
-            {% endfor %}
-        {% else %}
-            <p>No images uploaded yet.</p>
-        {% endif %}
-    </div>
+<div id="gallery">
+    {% if image_urls %}
+        {% for url in image_urls %}
+            {% set filename = url.split('/')[-1] %}
+            <div class="image-card">
+                <img src="{{ url }}" alt="Image">
+                <div class="caption">{{ filename }}</div>
+                <form action="/delete" method="POST" onsubmit="return confirm('Are you sure you want to delete {{ filename }}?');">
+                    <input type="hidden" name="file_name" value="{{ filename }}">
+                    <button type="submit">Delete</button>
+                </form>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No images uploaded yet.</p>
+    {% endif %}
+</div>
 
-    <div id="overlay"><span>Uploading...</span></div>
+<div id="overlay"><span>Uploading...</span></div>
 
-    <script>
-        const form = document.getElementById('uploadForm');
-        const uploadBtn = document.getElementById('uploadBtn');
-        const galleryDiv = document.getElementById('gallery');
-        const overlay = document.getElementById('overlay');
+<script>
+const form = document.getElementById('uploadForm');
+const uploadBtn = document.getElementById('uploadBtn');
+const overlay = document.getElementById('overlay');
 
-        function renderGallery(html) {
-            galleryDiv.innerHTML = html;
+form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const formData = new FormData(form);
+    overlay.style.display = 'flex';
+    uploadBtn.disabled = true;
+
+    try {
+        const response = await fetch('/', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (response.ok) {
+            form.reset();
+            window.location.reload();
+        } else {
+            alert('Upload failed!');
         }
 
-        form.addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            const formData = new FormData(form);
-            overlay.style.display = 'flex';
-            uploadBtn.disabled = true;
-
-            try {
-                const response = await fetch('/', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                if (response.ok) {
-                    form.reset();
-                    // Automatically reload page after successful upload to fix image sizes
-                    window.location.reload();
-                } else {
-                    alert('Upload failed!');
-                }
-
-            } catch (err) {
-                console.error(err);
-                alert('Error uploading file!');
-            } finally {
-                overlay.style.display = 'none';
-                uploadBtn.disabled = false;
-            }
-        });
-    </script>
+    } catch (err) {
+        console.error(err);
+        alert('Error uploading file!');
+    } finally {
+        overlay.style.display = 'none';
+        uploadBtn.disabled = false;
+    }
+});
+</script>
 
 </body>
 </html>
