@@ -29,23 +29,29 @@ jobs:
           docker build -t $IMAGE_NAME:$IMAGE_TAG .
           docker push $IMAGE_NAME:$IMAGE_TAG
 
-      # 4️⃣ Copy Kubernetes manifests to EC2
+      # 4️⃣ Write SSH key to file
+      - name: Setup SSH key
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY }}" > key.pem
+          chmod 600 key.pem
+
+      # 5️⃣ Copy Kubernetes manifests to EC2
       - name: Copy manifests to EC2
         uses: appleboy/scp-action@v0.1.1
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
+          key_path: key.pem
           source: "k8s/*"
           target: "/home/ubuntu/app/k8s/"
 
-      # 5️⃣ Deploy to kind cluster on EC2
+      # 6️⃣ Deploy to kind cluster on EC2
       - name: Deploy to EC2 kind cluster
         uses: appleboy/ssh-action@v0.1.8
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
+          key_path: key.pem
           script: |
             # Apply Kubernetes manifests
             kubectl apply -f /home/ubuntu/app/k8s/deployment.yaml
